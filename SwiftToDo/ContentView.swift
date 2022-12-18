@@ -8,81 +8,53 @@
 import SwiftUI
 import CoreData
 
-struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
+struct ToDoView: View {
 
-    var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+    @State var todos = [
+            TodoItem(title: "Study"),
+            TodoItem(title: "Finish App"),
+            TodoItem(title: "Do Yoga"),
+            TodoItem(title: "Meditate"),
+            TodoItem(title: "Workout"),
+        ]
+        
+        var body: some View {
+            NavigationView {
+                List {
+                    ForEach(todos) { item in
+                        HStack {
+                            Image(systemName: item.isDone ? "checkmark.circle" : "circle")
+                            Text(item.title)
+                            Spacer()
+                        }
+                        .background(Color(.systemBackground))
+                        .onTapGesture {
+                            if let matchingIndex = self.todos.firstIndex(where: { $0.id == item.id }) {
+                                self.todos[matchingIndex].isDone.toggle()
+                            }
+                        }
                     }
+                    .onDelete(perform: deleteListItem)
+                    .onMove(perform: moveListItem)
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                .navigationBarItems(trailing: EditButton())
+                .navigationBarTitle("Checklist")
             }
         }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+        
+        func deleteListItem(whichElement: IndexSet) {
+            todos.remove(atOffsets: whichElement)
         }
-    }
+        
+        func moveListItem(whichElement: IndexSet, destination: Int) {
+            todos.move(fromOffsets: whichElement, toOffset: destination)
+        }
+    
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
-struct ContentView_Previews: PreviewProvider {
+struct ToDoView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        ToDoView()
     }
 }
